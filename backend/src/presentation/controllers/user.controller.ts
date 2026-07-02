@@ -12,6 +12,7 @@ export class UserController {
     private readonly _userauthService: IUserAuthService,
   ) {}
 
+  // Register a new user
   async register(req: Request, res: Response): Promise<void> {
     try {
       const dto: RegisterUserDTO = {
@@ -68,6 +69,46 @@ export class UserController {
       const message =
         error instanceof Error ? error.message : "Something went wrong";
 
+      res.status(400).json({ success: false, message });
+    }
+  }
+
+  async refresh(req: Request, res: Response): Promise<void> {
+    try {
+      const refreshToken = req.cookies.refreshToken;
+      if (!refreshToken) {
+        res.status(401).json({ success: false, message: "Refresh token missing" });
+        return;
+      }
+
+      const accessToken = await this._userauthService.refresh(refreshToken);
+
+      res.status(200).json({
+        success: true,
+        message: "Token refreshed successfully",
+        data: {
+          accessToken,
+        },
+      });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Invalid or expired refresh token";
+      res.status(401).json({ success: false, message });
+    }
+  }
+
+  async logout(req: Request, res: Response): Promise<void> {
+    try {
+      res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+      });
+      res.status(200).json({ success: true, message: "Logged out successfully" });
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Something went wrong";
       res.status(400).json({ success: false, message });
     }
   }

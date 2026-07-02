@@ -1,12 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
-import { FaCloudUploadAlt, FaFilePdf, FaEye } from "react-icons/fa";
+import { FaCloudUploadAlt, FaFilePdf, FaEye, FaTrashAlt } from "react-icons/fa";
 import { PdfService } from "../../service/pdf/user.pdf.service";
 import type { PdfItem } from "../../types/upload.pdf.type";
 import PdfPageViewer from "../../components/PdfPageViewer";
 import GeneratedPdfSection from "../../components/GeneratedPdfSection";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { clearCredentials } from "../../store/auth/authSlice";
+import { UserAuthService } from "../../service/auth/auth.user";
+import { useNavigate } from "react-router-dom";
 
 const Home: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const user = useAppSelector((state) => state.auth.user);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -17,6 +24,20 @@ const Home: React.FC = () => {
   // Incrementing this causes GeneratedPdfSection to re-fetch
   const [generatedRefreshToken, setGeneratedRefreshToken] = useState(0);
 
+  const [pdfToDelete, setPdfToDelete] = useState<PdfItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await UserAuthService.logout();
+    } catch (err) {
+      console.warn("Failed to clear cookie on backend, clearing frontend anyway:", err);
+    } finally {
+      dispatch(clearCredentials());
+      navigate("/login");
+    }
+  };
+
   const fetchPdfs = async () => {
     try {
       const response = await PdfService.getPdfs();
@@ -25,6 +46,22 @@ const Home: React.FC = () => {
       }
     } catch {
       // silently fail — list stays empty
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!pdfToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await PdfService.deletePdf(pdfToDelete._id);
+      if (res.success) {
+        setPdfList((prev) => prev.filter((p) => p._id !== pdfToDelete._id));
+      }
+    } catch {
+      alert("Failed to delete PDF");
+    } finally {
+      setIsDeleting(false);
+      setPdfToDelete(null);
     }
   };
 
@@ -80,10 +117,34 @@ const Home: React.FC = () => {
         <h1 className="text-2xl font-bold text-[#5A0F3D]">PDF Extractor</h1>
 
         <div className="flex gap-6 items-center">
-          <button className="text-[#5A0F3D] font-medium">Login</button>
-          <button className="px-4 py-2 bg-pink-500 text-white rounded-full">
-            Sign up
-          </button>
+          {user ? (
+            <>
+              <span className="text-gray-700 font-medium">
+                Welcome, {user.name}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-[#5A0F3D] text-white rounded-full font-medium hover:bg-[#7b1856] transition cursor-pointer"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => navigate("/login")}
+                className="text-[#5A0F3D] font-medium"
+              >
+                Login
+              </button>
+              <button
+                onClick={() => navigate("/register")}
+                className="px-4 py-2 bg-pink-500 text-white rounded-full"
+              >
+                Sign up
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -141,9 +202,8 @@ const Home: React.FC = () => {
 
           {message && (
             <p
-              className={`mt-5 text-sm ${
-                isError ? "text-red-500" : "text-green-600"
-              }`}
+              className={`mt-5 text-sm ${isError ? "text-red-500" : "text-green-600"
+                }`}
             >
               {message}
             </p>
@@ -181,14 +241,24 @@ const Home: React.FC = () => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setViewingPdf(pdf)}
-                    className="ml-4 flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#5A0F3D] border border-[#5A0F3D] rounded-full hover:bg-[#5A0F3D] hover:text-white transition flex-shrink-0"
-                    aria-label={`View pages of ${pdf.originalName}`}
-                  >
-                    <FaEye className="text-xs" />
-                    View Pages
-                  </button>
+                  <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                    <button
+                      onClick={() => setViewingPdf(pdf)}
+                      className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-[#5A0F3D] border border-[#5A0F3D] rounded-full hover:bg-[#5A0F3D] hover:text-white transition"
+                      aria-label={`View pages of ${pdf.originalName}`}
+                    >
+                      <FaEye className="text-xs" />
+                      View Pages
+                    </button>
+                    <button
+                      onClick={() => setPdfToDelete(pdf)}
+                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition"
+                      aria-label={`Delete ${pdf.originalName}`}
+                      title="Delete"
+                    >
+                      <FaTrashAlt className="text-sm" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -210,6 +280,34 @@ const Home: React.FC = () => {
           onClose={() => setViewingPdf(null)}
           onExtracted={() => setGeneratedRefreshToken((t) => t + 1)}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {pdfToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Delete PDF</h3>
+            <p className="text-gray-600 text-sm mb-6">
+              Are you sure you want to delete "{pdfToDelete.originalName}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setPdfToDelete(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition flex items-center justify-center min-w-[80px]"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

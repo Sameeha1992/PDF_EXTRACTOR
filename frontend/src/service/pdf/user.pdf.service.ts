@@ -40,4 +40,16 @@ export const PdfService = {
     return data;
   },
 
+  async deletePdf(id:string){
+    const {data} = await apiClient.delete(`/users/pdfs/${id}`)
+
+    return data
+  },
+
+  async deleteGeneratedPdf(id: string) {
+    const { data } = await apiClient.delete(`/users/generated-pdfs/${id}`);
+    return data;
+  }
 };
+
+export default PdfService;

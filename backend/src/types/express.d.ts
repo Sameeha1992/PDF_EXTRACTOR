@@ -11,6 +11,6 @@ declare global {
   }
 }
 
-export {};
+export { };
 
 THIS_SHOULD_CAUSE_AN_ERROR

@@ -37,6 +37,7 @@ export class PdfService implements IPdfService {
     const totalPages = pdfDocument.getPageCount();
 
     const pdfEntity: IPdf = {
+      userId: dto.userId,
       originalName: dto.originalName,
       filename: dto.filename,
       path: dto.path,
@@ -49,8 +50,8 @@ export class PdfService implements IPdfService {
 
   // ── List uploaded PDFs ────────────────────────────────────────────────────
 
-  async getPdfs(): Promise<GetPdfsResponseDto[]> {
-    const pdfs = await this._ipdfRepository.findAll();
+  async getPdfs(userId: string): Promise<GetPdfsResponseDto[]> {
+    const pdfs = await this._ipdfRepository.findByUserId(userId);
 
     return pdfs.map((pdf) => ({
       _id: (pdf as any)._id?.toString(),
@@ -63,9 +64,9 @@ export class PdfService implements IPdfService {
 
   // ── Page thumbnails ───────────────────────────────────────────────────────
 
-  async getPdfPages(id: string): Promise<GetPdfPagesResponseDto> {
+  async getPdfPages(id: string, userId: string): Promise<GetPdfPagesResponseDto> {
     const pdf = await this._ipdfRepository.findById(id);
-    if (!pdf) throw new Error("PDF not found");
+    if (!pdf || pdf.userId.toString() !== userId) throw new Error("PDF not found");
 
     const pdfId = (pdf as any)._id?.toString() as string;
 
@@ -96,7 +97,7 @@ export class PdfService implements IPdfService {
     }
 
     const pdf = await this._ipdfRepository.findById(pdfId);
-    if (!pdf) throw new Error("PDF not found");
+    if (!pdf || pdf.userId.toString() !== userId) throw new Error("PDF not found");
 
     if (!fs.existsSync(pdf.path)) {
       throw new Error("Source PDF file not found on disk");
@@ -183,9 +184,9 @@ export class PdfService implements IPdfService {
 
   // ── Delete an uploaded PDF ────────────────────────────────────────────────
 
-  async deletePdf(id: string): Promise<DeletePdfResponseDto> {
+  async deletePdf(id: string, userId: string): Promise<DeletePdfResponseDto> {
     const pdf = await this._ipdfRepository.findById(id);
-    if (!pdf) throw new Error("PDF not found");
+    if (!pdf || pdf.userId.toString() !== userId) throw new Error("PDF not found");
 
     // Remove original file from disk (best-effort — don't fail if already gone)
     if (fs.existsSync(pdf.path)) {
@@ -205,6 +206,23 @@ export class PdfService implements IPdfService {
 
     // Remove DB record
     await this._ipdfRepository.delete(id);
+
+    return { id };
+  }
+
+  // ── Delete a generated PDF ───────────────────────────────────────────────
+
+  async deleteGeneratedPdf(id: string, userId: string): Promise<{ id: string }> {
+    const generatedPdf = await this._iGeneratedPdfRepository.findById(id);
+    if (!generatedPdf || generatedPdf.userId.toString() !== userId) throw new Error("Generated PDF not found");
+
+    // Remove file from disk
+    if (fs.existsSync(generatedPdf.path)) {
+      fs.unlinkSync(generatedPdf.path);
+    }
+
+    // Remove DB record
+    await this._iGeneratedPdfRepository.delete(id);
 
     return { id };
   }

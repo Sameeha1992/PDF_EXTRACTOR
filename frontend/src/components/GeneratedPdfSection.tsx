@@ -5,6 +5,7 @@ import {
   FaExternalLinkAlt,
   FaSpinner,
   FaInbox,
+  FaTrashAlt,
 } from "react-icons/fa";
 import { PdfService } from "../service/pdf/user.pdf.service";
 import type { GeneratedPdfItem } from "../types/upload.pdf.type";
@@ -18,6 +19,25 @@ const GeneratedPdfSection: React.FC<Props> = ({ refreshToken = 0 }) => {
   const [items, setItems] = useState<GeneratedPdfItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [pdfToDelete, setPdfToDelete] = useState<GeneratedPdfItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const confirmDelete = async () => {
+    if (!pdfToDelete) return;
+    try {
+      setIsDeleting(true);
+      const res = await PdfService.deleteGeneratedPdf(pdfToDelete._id);
+      if (res.success) {
+        setItems((prev) => prev.filter((p) => p._id !== pdfToDelete._id));
+      }
+    } catch {
+      alert("Failed to delete generated PDF");
+    } finally {
+      setIsDeleting(false);
+      setPdfToDelete(null);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -149,10 +169,48 @@ const GeneratedPdfSection: React.FC<Props> = ({ refreshToken = 0 }) => {
                 <FaDownload className="text-xs" />
                 Download
               </a>
+
+              {/* Delete */}
+              <button
+                onClick={() => setPdfToDelete(item)}
+                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition ml-1"
+                aria-label={`Delete ${item.filename}`}
+                title="Delete"
+              >
+                <FaTrashAlt className="text-sm" />
+              </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {pdfToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">Delete Generated PDF</h3>
+            <p className="text-gray-600 text-sm mb-6">
+              Are you sure you want to delete "{pdfToDelete.filename}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setPdfToDelete(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition flex items-center justify-center min-w-[80px]"
+                disabled={isDeleting}
+              >
+                {isDeleting ? "..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

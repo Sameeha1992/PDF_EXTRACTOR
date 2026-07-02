@@ -17,6 +17,7 @@ export class PdfController {
       }
 
       const dto: UploadPdfDto = {
+        userId: req.user!.id,
         filename: req.file.filename,
         originalName: req.file.originalname,
         path: req.file.path,
@@ -31,9 +32,10 @@ export class PdfController {
 
   // ── List uploaded PDFs ──────────────────────────────────────────────────
 
-  async getPdfs(_req: Request, res: Response): Promise<void> {
+  async getPdfs(req: Request, res: Response): Promise<void> {
     try {
-      const pdfs = await this._pdfService.getPdfs();
+      const userId = req.user!.id;
+      const pdfs = await this._pdfService.getPdfs(userId);
       res.status(200).json({ success: true, message: "PDFs fetched successfully", data: pdfs });
     } catch {
       res.status(500).json({ success: false, message: "Failed to fetch PDFs" });
@@ -45,12 +47,13 @@ export class PdfController {
   async getPdfPages(req: Request, res: Response): Promise<void> {
     try {
       const id = req.params.id as string;
+      const userId = req.user!.id;
       if (!id) {
         res.status(400).json({ success: false, message: "PDF id is required" });
         return;
       }
 
-      const data = await this._pdfService.getPdfPages(id);
+      const data = await this._pdfService.getPdfPages(id, userId);
       res.status(200).json({ success: true, message: "PDF pages fetched successfully", data });
     } catch (error: any) {
       const isNotFound = error?.message === "PDF not found";
@@ -134,23 +137,46 @@ export class PdfController {
     }
   }
 
-  // ── Delete an uploaded PDF ───────────────────────────────────────────────
+  // ── Delete a PDF ─────────────────────────────────────────────────────────
 
   async deletePdf(req: Request, res: Response): Promise<void> {
     try {
       const id = req.params.id as string;
+      const userId = req.user!.id;
       if (!id) {
         res.status(400).json({ success: false, message: "PDF id is required" });
         return;
       }
 
-      const data = await this._pdfService.deletePdf(id);
+      const data = await this._pdfService.deletePdf(id, userId);
       res.status(200).json({ success: true, message: "PDF deleted successfully", data });
     } catch (error: any) {
       const isNotFound = error?.message === "PDF not found";
       res.status(isNotFound ? 404 : 500).json({
         success: false,
         message: isNotFound ? "PDF not found" : "Failed to delete PDF",
+      });
+    }
+  }
+
+  // ── Delete a generated PDF ───────────────────────────────────────────────
+
+  async deleteGeneratedPdf(req: Request, res: Response): Promise<void> {
+    try {
+      const id = req.params.id as string;
+      const userId = req.user!.id;
+      if (!id) {
+        res.status(400).json({ success: false, message: "Generated PDF id is required" });
+        return;
+      }
+
+      const data = await this._pdfService.deleteGeneratedPdf(id, userId);
+      res.status(200).json({ success: true, message: "Generated PDF deleted successfully", data });
+    } catch (error: any) {
+      const isNotFound = error?.message === "Generated PDF not found";
+      res.status(isNotFound ? 404 : 500).json({
+        success: false,
+        message: isNotFound ? "Generated PDF not found" : "Failed to delete generated PDF",
       });
     }
   }

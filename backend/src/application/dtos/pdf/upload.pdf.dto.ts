@@ -1,4 +1,5 @@
 export interface UploadPdfDto {
+  userId: string;
   filename: string;
   originalName: string;
   path: string;

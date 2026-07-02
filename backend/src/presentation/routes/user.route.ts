@@ -18,10 +18,20 @@ router.post(
   userController.register.bind(userController),
 );
 router.post("/login", validateLogin, userController.login.bind(userController));
+router.post("/refresh", userController.refresh.bind(userController));
+router.post("/logout", userController.logout.bind(userController));
 
 // ── PDFs (public read, auth required for write / user-scoped) ────────────────
-router.get("/pdfs", pdfController.getPdfs.bind(pdfController));
-router.get("/pdfs/:id/pages", pdfController.getPdfPages.bind(pdfController));
+router.get(
+  "/pdfs",
+  authMiddleware,
+  pdfController.getPdfs.bind(pdfController),
+);
+router.get(
+  "/pdfs/:id/pages",
+  authMiddleware,
+  pdfController.getPdfPages.bind(pdfController),
+);
 
 router.post(
   "/upload",
@@ -48,6 +58,11 @@ router.delete(
   "/pdfs/:id",
   authMiddleware,
   pdfController.deletePdf.bind(pdfController),
+);
+router.delete(
+  "/generated-pdfs/:id",
+  authMiddleware,
+  pdfController.deleteGeneratedPdf.bind(pdfController),
 );
 
 export default router;

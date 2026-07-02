@@ -17,7 +17,7 @@ export const authMiddleware = (
   const token = authHeader.slice(7);
 
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, env.ACCESS_TOKEN_SECRET) as JwtPayload;
 
     if (!decoded?.id) {
       res.status(401).json({ success: false, message: "Unauthorised: invalid token payload" });

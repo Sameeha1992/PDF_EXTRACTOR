@@ -49,4 +49,18 @@ export class UserAuthService implements IUserAuthService{
 
         return UserLoginMapper.toResponse(user, accessToken, refreshToken);
     }
+
+    async refresh(refreshToken: string): Promise<string> {
+        const decoded = this._jwtService.verifyRefreshToken(refreshToken) as any;
+        if (!decoded || !decoded.email) {
+            throw new Error("Invalid refresh token");
+        }
+
+        const user = await this._iUserRepository.findByEmail(decoded.email);
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        return this._jwtService.generateAccessToken(user);
+    }
 }

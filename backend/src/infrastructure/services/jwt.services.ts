@@ -8,9 +8,9 @@ import { env } from "../config/env.config";
 export class JwtService implements IJwtService {
   generateAccessToken(user: User): string {
     return jwt.sign(
-      { id: user.id, email: user.email },
-      env.JWT_SECRET,
-      { expiresIn: env.JWT_EXPIRES_IN as SignOptions["expiresIn"] },
+      { id: user.id, email: user.email, name: user.name },
+      env.ACCESS_TOKEN_SECRET,
+      { expiresIn: env.ACCESS_TOKEN_EXPIRES_IN as SignOptions["expiresIn"] },
     );
   }
 
@@ -23,7 +23,7 @@ export class JwtService implements IJwtService {
   }
 
   verifyAccessToken(token: string): JwtPayload | string {
-    return jwt.verify(token, env.JWT_SECRET);
+    return jwt.verify(token, env.ACCESS_TOKEN_SECRET);
   }
 
   verifyRefreshToken(token: string): JwtPayload | string {

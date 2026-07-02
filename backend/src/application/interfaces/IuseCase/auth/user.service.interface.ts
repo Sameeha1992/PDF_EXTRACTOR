@@ -5,4 +5,5 @@ import { RegisterResponseDto, RegisterUserDTO } from "../../../dtos/auth/registe
 export interface IUserAuthService{
     register(user:RegisterUserDTO):Promise<RegisterResponseDto>
     login(data:LoginDto):Promise<LoginResponseDto>
+    refresh(refreshToken: string): Promise<string>
 }

@@ -1,9 +1,7 @@
-import { Schema, model } from "mongoose";
-
-
-import { Document } from "mongoose";
+import { Schema, model, Document, Types } from "mongoose";
 
 export interface IPdfDocument extends Document {
+  userId: Types.ObjectId;
   originalName: string;
   filename: string;
   path: string;
@@ -15,6 +13,11 @@ export interface IPdfDocument extends Document {
 
 const pdfSchema = new Schema<IPdfDocument>(
   {
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
     originalName: {
       type: String,
       required: true,
@@ -37,4 +40,7 @@ const pdfSchema = new Schema<IPdfDocument>(
   }
 );
 
-export const PdfModel = model("Pdf", pdfSchema);
+// Index for fast per-user queries
+pdfSchema.index({ userId: 1, createdAt: -1 });
+
+export const PdfModel = model<IPdfDocument>("Pdf", pdfSchema);

@@ -11,4 +11,8 @@ export class PdfRepository extends BaseRepository<IPdfDocument> {
   async findAll(): Promise<IPdfDocument[]> {
     return await PdfModel.find().sort({ createdAt: -1 });
   }
+
+  async findByUserId(userId: string): Promise<IPdfDocument[]> {
+    return await PdfModel.find({ userId }).sort({ createdAt: -1 });
+  }
 }

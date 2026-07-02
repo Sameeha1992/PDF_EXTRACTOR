@@ -1,5 +1,6 @@
 export class IPdf {
   constructor(
+    public readonly userId: string,
     public readonly originalName: string,
     public readonly filename: string,
     public readonly path: string,
