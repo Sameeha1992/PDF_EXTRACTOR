@@ -7,7 +7,7 @@ import userRouter from "./presentation/routes/user.route";
 const app = express();
 
 app.use(cors({
-  origin: process.env.CLIENT_URL ?? "http://localhost:5173",
+  origin: process.env.CLIENT_URL,
   credentials: true,          // allow cookies cross-origin
 }));
 app.use(express.json());

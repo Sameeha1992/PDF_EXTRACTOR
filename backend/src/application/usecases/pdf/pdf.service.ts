@@ -19,7 +19,7 @@ import { IPdfRepository } from "../../interfaces/Irepository/pdf.repository.inte
 import { IGeneratedPdfRepository } from "../../interfaces/Irepository/generated-pdf.repository.interface";
 import { ThumbnailService } from "../../../infrastructure/services/thumbnail.service";
 
-const STATIC_BASE_URL = process.env.STATIC_BASE_URL ?? "http://localhost:5000";
+const STATIC_BASE_URL = process.env.STATIC_BASE_URL;
 
 @injectable()
 export class PdfService implements IPdfService {
